@@ -335,6 +335,20 @@ export class OidcSecurityService {
             });
     }
 
+    private generateTokenData(code:string){
+        let data = `grant_type=authorization_code&client_id=${this.authConfiguration.client_id}`
+        + `&code_verifier=${this.oidcSecurityCommon.code_verifier}&code=${code}`;
+        if (this.authConfiguration.client_secret !== undefined && this.authConfiguration.client_secret !== null) {
+            data = data +`&client_secret=${ this.authConfiguration.client_secret}`;
+        }     
+        if (this.oidcSecurityCommon.silentRenewRunning === 'running') {
+            data =`&redirect_uri=${this.authConfiguration.silent_redirect_url}`;
+        }else{
+            data =`&redirect_uri=${this.authConfiguration.redirect_url}`;
+        }
+        return data;
+    }
+
     // Code Flow with PCKE
     requestTokensWithCodeProcedure(code: string, state: string, session_state: string | null) {
         let tokenRequestUrl = '';
@@ -350,14 +364,7 @@ export class OidcSecurityService {
 
         let headers: HttpHeaders = new HttpHeaders();
         headers = headers.set('Content-Type', 'application/x-www-form-urlencoded');
-
-        let data = `grant_type=authorization_code&client_id=${this.authConfiguration.client_id}`
-            + `&code_verifier=${this.oidcSecurityCommon.code_verifier}&code=${code}&redirect_uri=${this.authConfiguration.redirect_url}`;
-        if (this.oidcSecurityCommon.silentRenewRunning === 'running') {
-            data = `grant_type=authorization_code&client_id=${this.authConfiguration.client_id}`
-                + `&code_verifier=${this.oidcSecurityCommon.code_verifier}&code=${code}&redirect_uri=${this.authConfiguration.silent_redirect_url}`;
-        }
-
+        let data = this.generateTokenData(code);
         this.httpClient
             .post(tokenRequestUrl, data, { headers: headers })
             .pipe(
