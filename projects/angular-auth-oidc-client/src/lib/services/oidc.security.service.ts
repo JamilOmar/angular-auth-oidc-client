@@ -339,12 +339,12 @@ export class OidcSecurityService {
         let data = `grant_type=authorization_code&client_id=${this.authConfiguration.client_id}`
         + `&code_verifier=${this.oidcSecurityCommon.code_verifier}&code=${code}`;
         if (this.authConfiguration.client_secret !== undefined && this.authConfiguration.client_secret !== null) {
-            data = data +`&client_secret=${ this.authConfiguration.client_secret}`;
+            data +=`&client_secret=${ this.authConfiguration.client_secret}`;
         }     
         if (this.oidcSecurityCommon.silentRenewRunning === 'running') {
-            data =`&redirect_uri=${this.authConfiguration.silent_redirect_url}`;
+            data +=`&redirect_uri=${this.authConfiguration.silent_redirect_url}`;
         }else{
-            data =`&redirect_uri=${this.authConfiguration.redirect_url}`;
+            data +=`&redirect_uri=${this.authConfiguration.redirect_url}`;
         }
         return data;
     }
@@ -457,7 +457,6 @@ export class OidcSecurityService {
             this.loggerService.logDebug(result);
 
             this.loggerService.logDebug('authorizedCallback created, begin token validation');
-
             this.getSigningKeys().subscribe(
                 jwtKeys => {
                     const validationResult = this.getValidatedStateResult(result, jwtKeys);

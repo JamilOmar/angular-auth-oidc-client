@@ -10,7 +10,7 @@ export class OpenIDImplicitFlowConfiguration {
     // The ID Token MUST be rejected if the ID Token does not list the Client as a valid audience,
     // or if it contains additional audiences not trusted by the Client.
     client_id = 'angularclient';
-    client_secret = 'angularclientsecret';
+    client_secret = undefined;
     response_type = 'id_token token';
     scope = 'openid email profile';
     // Only for Google Auth with particular G Suite domain, see https://developers.google.com/identity/protocols/OpenIDConnect#hd-param
