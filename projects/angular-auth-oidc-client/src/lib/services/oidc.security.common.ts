@@ -25,6 +25,16 @@ export class OidcSecurityCommon {
         this.store(this.storage_access_token, value);
     }
 
+    private storage_refresh_token = 'authorizationDataRefreshToken';
+
+    public get refreshToken(): string {
+        return this.retrieve(this.storage_refresh_token) || '';
+    }
+
+    public set refreshToken(value: string) {
+        this.store(this.storage_refresh_token, value);
+    }
+
     private storage_id_token = 'authorizationDataIdToken';
 
     public get idToken(): string {
@@ -130,6 +140,7 @@ export class OidcSecurityCommon {
     resetStorageData(isRenewProcess: boolean) {
         if (!isRenewProcess) {
             this.store(this.storage_auth_result, '');
+            this.store(this.refreshToken ,'');
             this.store(this.storage_session_state, '');
             this.store(this.storage_silent_renew_running, '');
             this.store(this.storage_is_authorized, false);
@@ -143,6 +154,11 @@ export class OidcSecurityCommon {
     getAccessToken(): any {
         return this.retrieve(this.storage_access_token);
     }
+
+    getRefreshToken(): any {
+        return this.retrieve(this.storage_refresh_token);
+    }
+
 
     getIdToken(): any {
         return this.retrieve(this.storage_id_token);

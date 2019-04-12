@@ -1,8 +1,8 @@
-import { HttpParams, HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpParams, HttpClient, HttpHeaders, HttpBackend } from '@angular/common/http';
 import { Injectable, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, from, Observable, Subject, throwError as observableThrowError, timer, of } from 'rxjs';
-import { catchError, filter, map, race, shareReplay, switchMap, switchMapTo, take, tap } from 'rxjs/operators';
+import { BehaviorSubject, from, Observable, Subject, throwError as observableThrowError, timer, of, iif } from 'rxjs';
+import { catchError, filter, map, race, shareReplay, switchMap, switchMapTo, take, tap, mergeMap } from 'rxjs/operators';
 import { OidcDataService } from '../data-services/oidc-data.service';
 import { AuthWellKnownEndpoints } from '../models/auth.well-known-endpoints';
 import { AuthorizationResult } from '../models/authorization-result';
@@ -71,8 +71,12 @@ export class OidcSecurityService {
         private tokenHelperService: TokenHelperService,
         private loggerService: LoggerService,
         private zone: NgZone,
-        private readonly httpClient: HttpClient
+        private httpClient: HttpClient,
+        // support for skipping interceptors
+        private handler: HttpBackend
     ) {
+        // support for skipping interceptors
+        this.httpClient = new HttpClient(handler);
         this.onModuleSetup.pipe(take(1)).subscribe(() => {
             this.moduleSetup = true;
             this._isModuleSetup.next(true);
@@ -334,6 +338,33 @@ export class OidcSecurityService {
                 this.requestTokensWithCodeProcedure(code, state, session_state);
             });
     }
+    // Code Flow with refresh Token
+    requestTokensWithRefreshToken(refreshToken: string, ) {
+        debugger;
+        let tokenRequestUrl = '';
+        if (this.authWellKnownEndpoints && this.authWellKnownEndpoints.token_endpoint) {
+            tokenRequestUrl = `${this.authWellKnownEndpoints.token_endpoint}`;
+        }
+        let headers: HttpHeaders = new HttpHeaders();
+        headers = headers.set('Content-Type', 'application/x-www-form-urlencoded');
+        const data = this.generateRefreshTokenData(refreshToken);
+        return this.httpClient
+            .post(tokenRequestUrl, data, { headers: headers })
+            .pipe(
+                map(response => {
+                    let result: any = new Object;
+                    result = response;
+                    return result;
+                }),
+                mergeMap((result) => { return this.authorizedRefreshTokenProcedure(result) }),
+                catchError(error => {
+                    this.loggerService.logError(error);
+                    this.loggerService.logError(`OidcService code request ${this.authConfiguration.stsServer}`);
+                    return of();
+                })
+            )
+
+    }
 
     private generateTokenData(code:string){
         let data = `grant_type=authorization_code&client_id=${this.authConfiguration.client_id}`
@@ -346,6 +377,14 @@ export class OidcSecurityService {
         }else{
             data +=`&redirect_uri=${this.authConfiguration.redirect_url}`;
         }
+        return data;
+    }
+    private generateRefreshTokenData(refreshToken:string){
+        let data = `grant_type=refresh_token&client_id=${this.authConfiguration.client_id}`
+        + `&refresh_token=${refreshToken}`;
+        if (this.authConfiguration.client_secret !== undefined && this.authConfiguration.client_secret !== null) {
+            data +=`&client_secret=${ this.authConfiguration.client_secret}`;
+        }     
         return data;
     }
 
@@ -364,7 +403,7 @@ export class OidcSecurityService {
 
         let headers: HttpHeaders = new HttpHeaders();
         headers = headers.set('Content-Type', 'application/x-www-form-urlencoded');
-        let data = this.generateTokenData(code);
+        const data = this.generateTokenData(code);
         this.httpClient
             .post(tokenRequestUrl, data, { headers: headers })
             .pipe(
@@ -383,6 +422,33 @@ export class OidcSecurityService {
                 })
             )
             .subscribe();
+    }
+
+   
+    private authorizedRefreshTokenProcedure(result: any) {
+        this.oidcSecurityCommon.authResult = result;
+        this.loggerService.logDebug(result);
+        this.loggerService.logDebug('authorizedRefreshTokenProcedure created, begin token validation');
+        this.setAuthorizationData(result.access_token, result.id_token, result.refresh_token);
+        this.oidcSecurityCommon.silentRenewRunning = '';
+        if (this.authConfiguration.auto_userinfo) {
+            return this.oidcSecurityUserService.initUserData().pipe(map(() => {
+                this.loggerService.logDebug('authorizedRefreshTokenProcedure flow');
+                const userData = this.oidcSecurityUserService.getUserData();
+                this.setUserData(userData);
+                this.oidcSecurityCommon.sessionState = result.session_state;
+                return userData;
+
+            }), catchError(error => {
+                this.loggerService.logError(error);
+                this.loggerService.logError(`OidcService code request ${this.authConfiguration.stsServer}`);
+                return of();
+            }));
+        }
+        else {
+            return of();
+        }
+
     }
 
     // Code Flow
@@ -462,7 +528,7 @@ export class OidcSecurityService {
                     const validationResult = this.getValidatedStateResult(result, jwtKeys);
 
                     if (validationResult.authResponseIsValid) {
-                        this.setAuthorizationData(validationResult.access_token, validationResult.id_token);
+                        this.setAuthorizationData(validationResult.access_token, validationResult.id_token , validationResult.refresh_token);
                         this.oidcSecurityCommon.silentRenewRunning = '';
 
                         if (this.authConfiguration.auto_userinfo) {
@@ -724,7 +790,7 @@ export class OidcSecurityService {
 
     private getValidatedStateResult(result: any, jwtKeys: JwtKeys): ValidateStateResult {
         if (result.error) {
-            return new ValidateStateResult('', '', false, {});
+            return new ValidateStateResult('', '', '' , false, {});
         }
 
         return this.stateValidationService.validateState(result, jwtKeys);
@@ -739,7 +805,7 @@ export class OidcSecurityService {
         this._isAuthorized.next(isAuthorized);
     }
 
-    private setAuthorizationData(access_token: any, id_token: any) {
+    private setAuthorizationData(access_token: any, id_token: any , refresh_token:any) {
         if (this.oidcSecurityCommon.accessToken !== '') {
             this.oidcSecurityCommon.accessToken = '';
         }
@@ -749,6 +815,7 @@ export class OidcSecurityService {
         this.loggerService.logDebug('storing to storage, getting the roles');
         this.oidcSecurityCommon.accessToken = access_token;
         this.oidcSecurityCommon.idToken = id_token;
+        this.oidcSecurityCommon.refreshToken = refresh_token;
         this.setIsAuthorized(true);
         this.oidcSecurityCommon.isAuthorized = true;
     }
