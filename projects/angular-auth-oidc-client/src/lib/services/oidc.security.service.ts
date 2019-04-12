@@ -340,8 +340,7 @@ export class OidcSecurityService {
             });
     }
     // Code Flow with refresh Token
-    requestTokensWithRefreshToken(refreshToken: string, ) {
-        debugger;
+    requestTokensWithRefreshToken(refreshToken: string ) {
         let tokenRequestUrl = '';
         if (this.authWellKnownEndpoints && this.authWellKnownEndpoints.token_endpoint) {
             tokenRequestUrl = `${this.authWellKnownEndpoints.token_endpoint}`;
