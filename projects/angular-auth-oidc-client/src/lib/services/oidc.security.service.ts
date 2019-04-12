@@ -131,7 +131,7 @@ export class OidcSecurityService {
         });
     }
 
-    setupModule(openIDImplicitFlowConfiguration: OpenIDImplicitFlowConfiguration, authWellKnownEndpoints: AuthWellKnownEndpoints): void {
+    setupModule(openIDImplicitFlowConfiguration: OpenIDImplicitFlowConfiguration, authWellKnownEndpoints: AuthWellKnownEndpoints) {
         this.authWellKnownEndpoints = Object.assign({}, authWellKnownEndpoints);
         this.authConfiguration.init(openIDImplicitFlowConfiguration);
         this.stateValidationService.setupModule(authWellKnownEndpoints);
@@ -192,6 +192,7 @@ export class OidcSecurityService {
                 })
             );
         }
+        return of();
     }
 
     getUserData(): Observable<any> {

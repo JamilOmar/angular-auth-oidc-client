@@ -51,6 +51,11 @@ export class OidcConfigService {
             .subscribe();
     }
 
+    load_well_known_endpoints(stsServer: string) {
+        const url = `${stsServer}/.well-known/openid-configuration`;
+        return this.httpClient.get(url);
+    }
+
     load_using_custom_stsServer(url: string) {
         this.httpClient
             .get(url)
