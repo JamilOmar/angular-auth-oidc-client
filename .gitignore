@@ -44,3 +44,4 @@ testem.log
 Thumbs.db
 
 /.vs
+angular-auth-oidc-client-*

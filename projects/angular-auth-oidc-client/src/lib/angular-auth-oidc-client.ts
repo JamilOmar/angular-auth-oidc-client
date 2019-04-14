@@ -13,3 +13,4 @@ export * from './services/oidc.security.service';
 export * from './services/oidc.security.storage';
 export * from './services/oidc.security.validation';
 export * from './services/oidc-token-helper.service';
+export * from './services/oidc.navigation.service';

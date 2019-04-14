@@ -15,6 +15,7 @@ import { BrowserStorage, OidcSecurityStorage } from '../services/oidc.security.s
 import { OidcSecurityUserService } from '../services/oidc.security.user-service';
 import { OidcSecurityValidation } from '../services/oidc.security.validation';
 import { AuthConfiguration } from './auth.configuration';
+import { OidcNavigationService, OidcNavigationRouteService } from '../services/oidc.navigation.service';
 
 @NgModule()
 export class AuthModule {
@@ -37,10 +38,48 @@ export class AuthModule {
                 AuthWellKnownEndpoints,
                 OidcDataService,
                 StateValidationService,
+                OidcNavigationRouteService,
                 {
                     provide: OidcSecurityStorage,
                     useClass: token.storage || BrowserStorage,
                 },
+                {
+                    provide: OidcNavigationService,
+                    useClass: OidcNavigationRouteService,
+
+                }
+            ],
+        };
+    }
+    static forChild(token: Token = {}): ModuleWithProviders {
+        return {
+            ngModule: AuthModule,
+            providers: [
+                OidcConfigService,
+                OidcSecurityService,
+                OidcSecurityValidation,
+                OidcSecurityCheckSession,
+                OidcSecuritySilentRenew,
+                OidcSecurityUserService,
+                OidcSecurityCommon,
+                AuthConfiguration,
+                TokenHelperService,
+                LoggerService,
+                IFrameService,
+                EqualityHelperService,
+                AuthWellKnownEndpoints,
+                OidcDataService,
+                StateValidationService,
+                OidcNavigationRouteService,
+                {
+                    provide: OidcSecurityStorage,
+                    useClass: token.storage || BrowserStorage,
+                },
+                {
+                    provide: OidcNavigationService,
+                    useClass: OidcNavigationRouteService,
+
+                }
             ],
         };
     }

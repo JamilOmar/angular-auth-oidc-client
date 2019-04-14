@@ -1,6 +1,5 @@
 import { HttpParams, HttpClient, HttpHeaders, HttpBackend } from '@angular/common/http';
-import { Injectable, NgZone } from '@angular/core';
-import { Router } from '@angular/router';
+import { Injectable, NgZone, InjectionToken, Inject } from '@angular/core';
 import { BehaviorSubject, from, Observable, Subject, throwError as observableThrowError, timer, of, iif } from 'rxjs';
 import { catchError, filter, map, race, shareReplay, switchMap, switchMapTo, take, tap, mergeMap } from 'rxjs/operators';
 import { OidcDataService } from '../data-services/oidc-data.service';
@@ -19,6 +18,7 @@ import { OidcSecurityCommon } from './oidc.security.common';
 import { OidcSecuritySilentRenew } from './oidc.security.silent-renew';
 import { OidcSecurityUserService } from './oidc.security.user-service';
 import { OidcSecurityValidation } from './oidc.security.validation';
+import { OidcNavigationService} from './oidc.navigation.service';
 import { UriEncoder } from './uri-encoder';
 
 @Injectable()
@@ -62,7 +62,6 @@ export class OidcSecurityService {
         private oidcDataService: OidcDataService,
         private stateValidationService: StateValidationService,
         private authConfiguration: AuthConfiguration,
-        private router: Router,
         private oidcSecurityCheckSession: OidcSecurityCheckSession,
         private oidcSecuritySilentRenew: OidcSecuritySilentRenew,
         private oidcSecurityUserService: OidcSecurityUserService,
@@ -72,6 +71,8 @@ export class OidcSecurityService {
         private loggerService: LoggerService,
         private zone: NgZone,
         private httpClient: HttpClient,
+        // support for navigation
+        private navigationService: OidcNavigationService,
         // support for skipping interceptors
         private handler: HttpBackend
     ) {
@@ -517,7 +518,7 @@ export class OidcSecurityService {
             }
 
             if (!this.authConfiguration.trigger_authorization_result_event && !isRenewProcess) {
-                this.router.navigate([this.authConfiguration.unauthorized_route]);
+                this.navigationService.navigate(this.authConfiguration.unauthorized_route);
             }
         } else {
             this.loggerService.logDebug(result);
@@ -539,14 +540,14 @@ export class OidcSecurityService {
                                             new AuthorizationResult(AuthorizationState.authorized, validationResult.state)
                                         );
                                         if (!this.authConfiguration.trigger_authorization_result_event && !isRenewProcess) {
-                                            this.router.navigate([this.authConfiguration.post_login_route]);
+                                            this.navigationService.navigate(this.authConfiguration.post_login_route);
                                         }
                                     } else {
                                         this._onAuthorizationResult.next(
                                             new AuthorizationResult(AuthorizationState.unauthorized, validationResult.state)
                                         );
                                         if (!this.authConfiguration.trigger_authorization_result_event && !isRenewProcess) {
-                                            this.router.navigate([this.authConfiguration.unauthorized_route]);
+                                            this.navigationService.navigate(this.authConfiguration.unauthorized_route);
                                         }
                                     }
                                 },
@@ -566,7 +567,7 @@ export class OidcSecurityService {
 
                             this._onAuthorizationResult.next(new AuthorizationResult(AuthorizationState.authorized, validationResult.state));
                             if (!this.authConfiguration.trigger_authorization_result_event && !isRenewProcess) {
-                                this.router.navigate([this.authConfiguration.post_login_route]);
+                                this.navigationService.navigate(this.authConfiguration.post_login_route);
                             }
                         }
                     } else {
@@ -578,7 +579,7 @@ export class OidcSecurityService {
 
                         this._onAuthorizationResult.next(new AuthorizationResult(AuthorizationState.unauthorized, validationResult.state));
                         if (!this.authConfiguration.trigger_authorization_result_event && !isRenewProcess) {
-                            this.router.navigate([this.authConfiguration.unauthorized_route]);
+                            this.navigationService.navigate(this.authConfiguration.unauthorized_route);
                         }
                     }
                 },
@@ -738,7 +739,7 @@ export class OidcSecurityService {
             if (this.authConfiguration.trigger_authorization_result_event) {
                 this._onAuthorizationResult.next(new AuthorizationResult(AuthorizationState.unauthorized, ValidationResult.NotSet));
             } else {
-                this.router.navigate([this.authConfiguration.forbidden_route]);
+                this.navigationService.navigate(this.authConfiguration.forbidden_route);
             }
         } else if (error.status === 401 || error.status === '401') {
             const silentRenew = this.oidcSecurityCommon.silentRenewRunning;
@@ -748,7 +749,7 @@ export class OidcSecurityService {
             if (this.authConfiguration.trigger_authorization_result_event) {
                 this._onAuthorizationResult.next(new AuthorizationResult(AuthorizationState.unauthorized, ValidationResult.NotSet));
             } else {
-                this.router.navigate([this.authConfiguration.unauthorized_route]);
+                this.navigationService.navigate(this.authConfiguration.unauthorized_route);
             }
         }
     }
