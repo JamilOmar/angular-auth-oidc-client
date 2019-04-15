@@ -217,6 +217,11 @@ export class OidcSecurityService {
         return decodeURIComponent(token);
     }
 
+    getRefreshToken(): string {
+        const token = this.oidcSecurityCommon.getRefreshToken();
+        return decodeURIComponent(token);
+    }
+
     getIdToken(): string {
         if (!this._isAuthorized.getValue()) {
             return '';
