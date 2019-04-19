@@ -22,6 +22,12 @@ default value : 'angularclient'
 
 The Client MUST validate that the aud (audience) Claim contains its client_id value registered at the Issuer identified by the iss (issuer) Claim as an audience. The ID Token MUST be rejected if the ID Token does not list the Client as a valid audience, or if it contains additional audiences not trusted by the Client.
 
+### client_secret
+
+default value : undefined
+
+The Client might validate that the aud (audience) Claim contains its client_secret value registered at the Issuer identified by the iss (issuer) Claim as an audience.
+
 ### response_type
 
 default value : 'id_token token'
